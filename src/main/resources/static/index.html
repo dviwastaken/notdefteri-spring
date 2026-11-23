@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not Defteri</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; background:#f5f6fa; color:#222; }
+  h1 { margin-bottom: .2rem; }
+  form, .not { background:#fff; border-radius:8px; padding:1rem; margin-bottom:.8rem; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  input, textarea { width:100%; box-sizing:border-box; padding:.5rem; margin:.3rem 0 .6rem; border:1px solid #bbb; border-radius:4px; font:inherit; }
+  button { padding:.5rem 1rem; border:0; border-radius:4px; background:#2f6fed; color:#fff; cursor:pointer; }
+  button.sil { background:#d6453d; float:right; }
+  .not small { color:#777; } .hata { color:#d6453d; }
+</style>
+</head>
+<body>
+<h1>Not Defteri</h1>
+<p>Spring Boot + H2 ile yapılmış basit not uygulaması.</p>
+
+<form id="form">
+  <label>Başlık<input id="baslik" maxlength="100"></label>
+  <label>İçerik<textarea id="icerik" rows="3" maxlength="1000"></textarea></label>
+  <div id="hata" class="hata"></div>
+  <button type="submit">Kaydet</button>
+</form>
+
+<div id="liste"></div>
+
+<script>
+const API = '/api/notlar';
+const kacis = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function yukle() {
+  const notlar = await (await fetch(API)).json();
+  document.getElementById('liste').innerHTML = notlar.length
+    ? notlar.map(n => `<div class="not"><button class="sil" onclick="sil(${n.id})">Sil</button>
+        <strong>${kacis(n.baslik)}</strong><br>${kacis(n.icerik || '')}<br>
+        <small>#${n.id} · ${new Date(n.olusturmaZamani).toLocaleString('tr-TR')}</small></div>`).join('')
+    : '<p>Henüz not yok.</p>';
+}
+
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ baslik: baslik.value, icerik: icerik.value }) });
+  if (r.ok) { baslik.value = ''; icerik.value = ''; hata.textContent = ''; yukle(); }
+  else { hata.textContent = Object.values(await r.json()).join(', '); }
+});
+
+async function sil(id) { await fetch(`${API}/${id}`, { method: 'DELETE' }); yukle(); }
+yukle();
+</script>
+</body>
+</html>
